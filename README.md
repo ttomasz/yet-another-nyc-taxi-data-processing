@@ -32,3 +32,18 @@ Since geopandas requires GDAL libraries it is the easiest to use conda environme
 conda install -c conda-forge beautifulsoup4 bokeh distributed fastparquet geopandas jupyter numba palettable pyarrow python-snappy scikit-learn seaborn
 ```
 This is from Shekhar's repo, I did not use all of the packages (mostly geopandas, fastparquet, and python-snappy) but installing them doesn't hurt.
+
+## Usage
+In data_processing.py the main methods to process and save as parquet all downloaded files for green taxi or yellow taxi companies are:
+- csv2parquet_green_taxi
+- csv2parquet_yellow_taxi
+
+If you just want to get a cleaned DataFrame of a single file import and use method:
+- process_yellow_taxi_data
+
+or
+
+- process_green_taxi_data
+
+## Known issues
+- some dates are not parsed well or are wrong and scripts do not discard records like that, when using the data make sure to only select records where year is between 2009 and 2029 or something
