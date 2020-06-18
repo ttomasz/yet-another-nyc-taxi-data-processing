@@ -162,7 +162,12 @@ def csv2parquet(paths: list) -> None:
         result_file_name = source_file_name.split('.')[0] + '.parquet'
         result_file_path = os.path.join(taxi_processed_basepath, result_file_name)
         stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - processing: {source_file_name}\n")
-        df = process_green_taxi_data(path)
+        if 'yellow' in source_file_name:
+            df = process_yellow_taxi_data(path)
+        elif 'green' in source_file_name:
+            df = process_green_taxi_data(path)
+        else:
+            raise ValueError(f'Couldn\'t determine how to parse given path: {path}')
         stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - writing DataFrame as parquet file: {result_file_name}\n")
         df.to_parquet(result_file_path, compression='snappy', engine='fastparquet')
 
