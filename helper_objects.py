@@ -68,7 +68,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_forward': 'object', 
-                'Passenger_Count': 'uint8', 
+                'Passenger_Count': 'float16', 
                 'Trip_Distance': 'float32', 
                 'Fare_Amt': 'float32', 
                 'Tip_Amt': 'float32', 
@@ -99,7 +99,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 
@@ -130,7 +130,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 
@@ -159,7 +159,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 
@@ -190,7 +190,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 
@@ -219,7 +219,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 
@@ -248,7 +248,7 @@ yellow_taxi_params = {
             ],
             'dtype': {
                 'store_and_fwd_flag': 'object', 
-                'passenger_count': 'uint8', 
+                'passenger_count': 'float16', 
                 'trip_distance': 'float32', 
                 'fare_amount': 'float32', 
                 'tip_amount': 'float32', 

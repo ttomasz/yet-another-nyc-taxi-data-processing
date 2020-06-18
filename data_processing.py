@@ -52,6 +52,8 @@ def process_taxi_data(df: pd.DataFrame, params, company, **kwargs):
     # add date related fields for easier querying
     df['year'] = pd.DatetimeIndex(df['pickup_datetime']).year
     df['year'] = df['year'].astype(np.int16)
+    # remove records with dates that were wrong or parsed improperly
+    df = df[(df['year'] >= 2009) & (df['year'] <= 2029)]
 #     df['year_quarter'] = pd.DatetimeIndex(df['pickup_datetime']).year.astype(str) + 'Q' + pd.DatetimeIndex(df['pickup_datetime']).quarter.astype(str)
 #     df['year_month'] = pd.DatetimeIndex(df['pickup_datetime']).strftime('%Y-%m')
 #     df['quarter'] = df['year'] = pd.DatetimeIndex(df['pickup_datetime']).quarter
@@ -152,12 +154,10 @@ def green_taxi_paths(folder: str) -> list:
     return glob(os.path.join(folder, 'green_tripdata*'))
 
 
+def csv2parquet(paths: list) -> None:
+    of = len(paths)
 
-def csv2parquet_green_taxi():
-    
-    of = len(green_taxi_paths(taxi_data_basepath))
-
-    for i, path in enumerate(green_taxi_paths(taxi_data_basepath)):
+    for i, path in enumerate(paths):
         source_file_name = os.path.basename(path)
         result_file_name = source_file_name.split('.')[0] + '.parquet'
         result_file_path = os.path.join(taxi_processed_basepath, result_file_name)
@@ -168,18 +168,8 @@ def csv2parquet_green_taxi():
 
     stdout.write(f"{datetime.now().isoformat(timespec='seconds')} - finished processing files.\n")
 
+def csv2parquet_green_taxi():    
+    csv2parquet(green_taxi_paths(taxi_data_basepath))
     
 def csv2parquet_yellow_taxi():
-    
-    of = len(yellow_taxi_paths(taxi_data_basepath))
-
-    for i, path in enumerate(yellow_taxi_paths(taxi_data_basepath)):
-        source_file_name = os.path.basename(path)
-        result_file_name = source_file_name.split('.')[0] + '.parquet'
-        result_file_path = os.path.join(taxi_processed_basepath, result_file_name)
-        stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - processing: {source_file_name}\n")
-        df = process_yellow_taxi_data(path)
-        stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - writing DataFrame as parquet file: {result_file_name}\n")
-        df.to_parquet(result_file_path, compression='snappy', engine='fastparquet')
-
-    stdout.write(f"{datetime.now().isoformat(timespec='seconds')} - finished processing files.\n")
+    csv2parquet(yellow_taxi_paths(taxi_data_basepath))

@@ -45,5 +45,9 @@ or
 
 - process_green_taxi_data
 
-## Known issues
-- some dates are not parsed well or are wrong and scripts do not discard records like that, when using the data make sure to only select records where year is between 2009 and 2029 or something
+Example:
+```python
+from data_processing import *
+
+csv2parquet(['path1', 'path2', 'etc'])
+```
