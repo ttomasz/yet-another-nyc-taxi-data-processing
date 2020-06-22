@@ -25,6 +25,7 @@ Description of files:
 - lookup - folder with lookup data for taxi zones in New York City, there is shapefile with geometries and csv file with mappings (id:name), attaching here for easier setup
 - taxi-eda.ipynb - jupyter notebook with leftover pieces of code I used to analyze the data in no particular order, uploaded it to repo should I want to modify something in the process as notebooks make it easier to iterate
 - zones.geojson - I converted shapefile from the lookup data to geojson using geopandas to be able to render the data in jupyter lab for testing
+- athena_ddl.sql - example of athena script to create table out of the files stored in s3, for compatilibty some fields have unoptimal data types (dates as string, ids as float), once the table is created another table can be created with values cast to the right types
 
 ## Requirements
 Since geopandas requires GDAL libraries it is the easiest to use conda environment and install packages using:
