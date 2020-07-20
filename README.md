@@ -28,11 +28,25 @@ Description of files:
 - athena_ddl.sql - example of athena script to create table out of the files stored in s3, for compatilibty some fields have unoptimal data types (dates as string, ids as float), once the table is created another table can be created with values cast to the right types
 
 ## Requirements
-Since geopandas requires GDAL libraries it is the easiest to use conda environment and install packages using:
+Using virtual environment is highly recommended.
+
+For windows you'll probably need to install GDAL, Fiona, rtree, and python-snappy packages manually using wheel files that can be found here: https://www.lfd.uci.edu/~gohlke/pythonlibs/
+
+GDAL needs to be installed before Fiona. Fiona and rtree need to be installed before GeoPandas. After installing these you can continue with installing the rest by executing:
 ```
-conda install -c conda-forge beautifulsoup4 bokeh distributed fastparquet geopandas jupyter numba palettable pyarrow python-snappy scikit-learn seaborn
+pip install requirements.txt
 ```
-This is from Shekhar's repo, I did not use all of the packages (mostly geopandas, fastparquet, and python-snappy) but installing them doesn't hurt.
+On linux/mac python-snappy package should install with regular:
+```
+pip install python-snappy
+```
+
+---
+
+Alternatively you use conda environment and install all packages with this command:
+```
+conda install -c conda-forge geopandas pyarrow python-snappy
+```
 
 ## Usage
 In data_processing.py the main methods to process and save as parquet all downloaded files for green taxi or yellow taxi companies are:
