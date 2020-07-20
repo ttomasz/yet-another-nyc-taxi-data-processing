@@ -16,13 +16,14 @@ def get_yellow_taxi_params(filename: str) -> dict:
         if filename <= k:
             return yellow_taxi_params[k]
 
+
 def get_green_taxi_params(filename: str) -> dict:
     for k in green_taxi_params.keys():
         if filename <= k:
             return green_taxi_params[k]
 
 
-def process_taxi_data(df: pd.DataFrame, params, company, **kwargs):
+def process_taxi_data(df: pd.DataFrame, params, company):
     df.rename(columns=column_mapping, inplace=True)
     
     if params['location'] == 'coordinates':
@@ -65,7 +66,6 @@ def process_taxi_data(df: pd.DataFrame, params, company, **kwargs):
         df['trip_type'] = np.nan
     else:
         df['trip_type'] = df['trip_type'].apply(trip_type_mapping)
-
 
     if params['location'] == 'id':
         ldf = pd.read_csv('./lookup/taxi+_zone_lookup.csv', index_col='LocationID', usecols=['LocationID', 'Borough', 'Zone'])
@@ -136,7 +136,7 @@ def process_yellow_taxi_data(filepath: str, **kwargs):
     params = get_yellow_taxi_params(filename)
     
     df = pd.read_csv(filepath, **params['csv_params'], **kwargs)
-    return process_taxi_data(df, params=params, company='yellow', **kwargs)
+    return process_taxi_data(df, params=params, company='yellow')
 
 
 def process_green_taxi_data(filepath: str, **kwargs):
@@ -144,11 +144,12 @@ def process_green_taxi_data(filepath: str, **kwargs):
     params = get_green_taxi_params(filename)
     
     df = pd.read_csv(filepath, **params['csv_params'], **kwargs)
-    return process_taxi_data(df, params=params, company='green', **kwargs)
+    return process_taxi_data(df, params=params, company='green')
 
 
 def yellow_taxi_paths(folder: str) -> list:
     return glob(os.path.join(folder, 'yellow_tripdata*'))
+
 
 def green_taxi_paths(folder: str) -> list:
     return glob(os.path.join(folder, 'green_tripdata*'))
@@ -161,20 +162,22 @@ def csv2parquet(paths: list) -> None:
         source_file_name = os.path.basename(path)
         result_file_name = source_file_name.split('.')[0] + '.parquet'
         result_file_path = os.path.join(taxi_processed_basepath, result_file_name)
-        stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - processing: {source_file_name}\n")
+        stdout.write(f"{str(i+1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - processing: {source_file_name}\n")
         if 'yellow' in source_file_name:
             df = process_yellow_taxi_data(path)
         elif 'green' in source_file_name:
             df = process_green_taxi_data(path)
         else:
             raise ValueError(f'Couldn\'t determine how to parse given path: {path}')
-        stdout.write(f"{str(i+1).zfill(2)}/{of} - {datetime.now().isoformat(timespec='seconds')} - writing DataFrame as parquet file: {result_file_name}\n")
+        stdout.write(f"{str(i+1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - writing DataFrame as parquet file: {result_file_name}\n")
         df.to_parquet(result_file_path, compression='snappy', engine='fastparquet')
 
     stdout.write(f"{datetime.now().isoformat(timespec='seconds')} - finished processing files.\n")
 
+
 def csv2parquet_green_taxi():    
     csv2parquet(green_taxi_paths(taxi_data_basepath))
-    
+
+
 def csv2parquet_yellow_taxi():
     csv2parquet(yellow_taxi_paths(taxi_data_basepath))

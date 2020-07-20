@@ -1,6 +1,7 @@
 import numpy as np
+from typing import Dict, Union, List
 
-column_name_mapping = {
+column_name_mapping: Dict[str, str] = {
     'congestion_surcharge': 'congestion_surcharge',
     'dolocationid': 'dropoff_location_id',
     'dropoff_datetime': 'dropoff_datetime',
@@ -45,7 +46,8 @@ column_name_mapping = {
     'lpep_pickup_datetime': 'pickup_datetime'
 }
 
-yellow_taxi_params = {
+params_type = Dict[str, Dict[str, Union[str, Dict[str, Union[bool, Dict[str, str], List[str]]]]]]
+yellow_taxi_params: params_type = {
     'yellow_tripdata_2009-12.csv': {
         'csv_params': {
             'parse_dates': ['Trip_Pickup_DateTime', 'Trip_Dropoff_DateTime'],
@@ -259,8 +261,8 @@ yellow_taxi_params = {
     }
 }
 
-green_taxi_params = {
-    'green_tripdata_2014-12.csv':{
+green_taxi_params: params_type = {
+    'green_tripdata_2014-12.csv': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'Lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -484,6 +486,7 @@ green_taxi_params = {
     }
 }
 
+
 def store_and_fwd_flag_standardize(x) -> int:
     if x is None:
         return None
@@ -511,14 +514,17 @@ def payment_type_mapping(id) -> str:
         return 'voided trip'
     else:
         return np.nan
-    
+
+
 def lower_strip(s: str) -> str:
     return s.strip().lower()
+
 
 def column_mapping(col: str) -> str:
     from helper_objects import column_name_mapping
     col = lower_strip(col)
     return column_name_mapping.get(col, col)
+
 
 def trip_type_mapping(id: int) -> str:
     if id == 1:
