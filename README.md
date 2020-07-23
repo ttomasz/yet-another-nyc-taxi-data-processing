@@ -5,7 +5,7 @@ This repo contains some scripts that I used to process New York City's data abou
 These are not production ready scripts but they may be useful to somebody looking to process the data themself.  
 My main goal was to convert CSV files to Parquet format to save space and for better performance so I could use them with eg. Amazon Athena for analytics but as I found along the way data needed to be cleaned and transformed to better suit that purpose.
 
-Scripts are free to use for any purpose but as mentioned they are not production ready and may contains bugs I take no reponsibility for.
+Scripts are free to use for any purpose but as mentioned they are not production ready and may contains bugs I take no responsibility for.
 
 Currently I only processed green and yellow taxis' data, no FHV data.
 
@@ -19,13 +19,17 @@ Lookup data is from official NYC site: https://www1.nyc.gov/site/tlc/about/tlc-t
 Raw data downloaded using "wget" with -i and -P flags using list of files from aforementioned repo: https://github.com/toddwschneider/nyc-taxi-data/blob/master/setup_files/raw_data_urls.txt  
 
 ## Structure
+Folder _src_ contains Python scripts. Watch out as I was pretty aggresive with removing rows due to bad or missing data (eg. I seriously doubt that someone would ride a taxi for 4 hours to travel 0,5 mile and pay 5$ for that.)
+
 Description of files:
-- helper_objects.py - some helper functions as well as definitions of parameters for various files since the schema changed over time
-- data_processing.py - main functions for processing data (uses helper_objects.py as dependency)
-- lookup - folder with lookup data for taxi zones in New York City, there is shapefile with geometries and csv file with mappings (id:name), attaching here for easier setup
+- src/helper_objects.py - some helper functions as well as definitions of parameters for various files since the schema changed over time
+- src/data_processing.py - main functions for processing data
+- src/data_cleaning.py - contains functions that clean/transform data
+- src/data_export.py - functions that save DataFrame as Parquet file, end-to-end functions that will take path of the file, process data, and save results as parquet file
+- lookup/ - folder with lookup data for taxi zones in New York City, there is the shapefile with geometries and the csv file with mappings (id:name), attaching here for easier setup
 - taxi-eda.ipynb - jupyter notebook with leftover pieces of code I used to analyze the data in no particular order, uploaded it to repo should I want to modify something in the process as notebooks make it easier to iterate
 - zones.geojson - I converted shapefile from the lookup data to geojson using geopandas to be able to render the data in jupyter lab for testing
-- athena_ddl.sql - example of athena script to create table out of the files stored in s3, for compatilibty some fields have unoptimal data types (dates as string, ids as float), once the table is created another table can be created with values cast to the right types
+- athena_ddl.sql - example of athena script to create table out of the files stored in s3, for compatibility some fields have unoptimal data types (dates as string, ids as float), once the table is created another table can be created with values cast to the right types
 
 ## Requirements
 Using virtual environment is highly recommended.
@@ -49,20 +53,63 @@ conda install -c conda-forge geopandas pyarrow python-snappy
 ```
 
 ## Usage
-In data_processing.py the main methods to process and save as parquet all downloaded files for green taxi or yellow taxi companies are:
-- csv2parquet_green_taxi
-- csv2parquet_yellow_taxi
+Files: data_processing.py and data_export.py are the two most important ones use them depending if you want to convert files straight to parquet or want a DataFrame.
 
-If you just want to get a cleaned DataFrame of a single file import and use method:
-- process_yellow_taxi_data
-
-or
-
-- process_green_taxi_data
-
-Example:
+Examples:
 ```python
-from data_processing import *
+from data_processing import process_taxi_data_file
+from data_export import csv2parquet
 
-csv2parquet(['path1', 'path2', 'etc'])
+# returns DataFrame
+df = process_taxi_data_file(r'path/to/file')
+
+# saves directly to specified folder
+csv2parquet([r'path1', r'path2', r'etc'], r'output_folder')
+```
+
+## Data structure
+DataFrame structure:
+```
+pickup_datetime          datetime64[ns]
+dropoff_datetime         datetime64[ns]
+store_and_forward                 Int16
+passenger_count                   Int16
+trip_distance                   float32
+fare_amount                     float32
+tip_amount                      float32
+total_amount                    float32
+payment_type                     object
+trip_type                        object
+trip_duration_minutes           float32
+year                              int16
+pickup_borough                   object
+pickup_zone                      object
+pickup_location_id                int16
+dropoff_borough                  object
+dropoff_zone                     object
+dropoff_location_id               int16
+company                          object
+```
+
+Parquet structure:
+```
+pickup_datetime         timestamp('ns')
+dropoff_datetime        timestamp('ns')
+store_and_forward                  int8
+passenger_count                    int8
+trip_distance                   float32
+fare_amount                     float32
+tip_amount                      float32
+total_amount                    float32
+payment_type                     string
+trip_type                        string
+company                          string
+trip_duration_minutes           float32
+year                              int16
+pickup_borough                   string
+pickup_zone                      string
+pickup_location_id                int16
+dropoff_borough                  string
+dropoff_zone                     string
+dropoff_location_id               int16
 ```
