@@ -86,7 +86,7 @@ def process_taxi_data_file(filepath: str, chunksize=500000, **kwargs) -> pd.Data
 
     end_time = time.perf_counter()
     run_time = datetime.timedelta(seconds=(end_time - start_time))
-    stdout.write(f'___\nProcessing file {filename!r} took {run_time}.\n')
+    stdout.write(f'___\nProcessing DataFrame from file {filename!r} took {run_time}.\n')
     stdout.flush()
 
     # info about processed DataFrame for sanity check
