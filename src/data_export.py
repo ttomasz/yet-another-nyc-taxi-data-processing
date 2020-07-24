@@ -21,10 +21,11 @@ def csv2parquet(paths: List[str], output_folder: str) -> None:
         result_file_path = os.path.join(output_folder, result_file_name)
 
         stdout.write(f"{str(i+1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - processing: {source_file_name}\n")
+        stdout.flush()
         df = process_taxi_data_file(path)
-        stdout.write(f"{str(i+1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - writing DataFrame as parquet file: {result_file_name}\n")
-        _write_to_parquet(df, result_file_path)
-        stdout.write(f"{str(i+1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - finished writing DataFrame as parquet file: {result_file_name}\n")
+        write_to_parquet(df, result_file_path)
+        stdout.write(f"{str(i + 1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - done.\n")
+        stdout.flush()
 
     stdout.write(f"{datetime.now().isoformat(timespec='seconds')} - finished processing files.\n")
 
@@ -38,13 +39,19 @@ def csv2parquet_yellow_taxi(taxi_data_basepath: str, output_folder: str) -> None
 
 
 @timer
-def _write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
+def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
     # prepare arrow table
     #   sorting for better compression
     #   replacing NA with NaN due to current incompatibility of pyarrow with that type
     table = pa.Table.from_pandas(
-        df=data_frame.fillna(np.nan).sort_values(by=['pickup_location_id', 'dropoff_location_id']),
-        Schema_schema=arrow_schema,
+        df=data_frame.fillna(np.nan).sort_values(by=['pickup_location_id', 'dropoff_location_id', 'payment_type']),
+        schema=arrow_schema,
         preserve_index=False)
     # write table to parquet file
     pq.write_table(table=table, where=filepath, flavor='spark')
+
+
+if __name__ == '__main__':
+    # for testing
+    csv2parquet_green_taxi('F:/', 'F:/parquet')
+    csv2parquet_yellow_taxi('F:/', 'F:/parquet')

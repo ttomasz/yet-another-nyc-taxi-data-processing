@@ -1,3 +1,4 @@
+import datetime
 from typing import Union, Any
 
 import numpy as np
@@ -18,7 +19,8 @@ def rename_columns(data_frame: pd.DataFrame) -> pd.DataFrame:
 def drop_invalid_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows where any of the coordinates is 0 or null."""
 
-    data_frame = data_frame.dropna(subset=['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude'])
+    data_frame = data_frame.dropna(
+        subset=['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude'])
     data_frame = data_frame[(data_frame['pickup_longitude'] != 0) & (data_frame['pickup_latitude'] != 0) &
                             (data_frame['dropoff_longitude'] != 0) & (data_frame['dropoff_latitude'] != 0)]
     return data_frame
@@ -87,7 +89,8 @@ def drop_missing_location_ids(data_frame: pd.DataFrame) -> pd.DataFrame:
 def standardize_snf_flag_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Replace values of store_and_forward with standardized versions."""
 
-    data_frame['store_and_forward'] = data_frame['store_and_forward'].apply(store_and_fwd_flag_mapping_function).astype(pd.Int16Dtype())
+    data_frame['store_and_forward'] = data_frame['store_and_forward'].apply(store_and_fwd_flag_mapping_function).astype(
+        pd.Int16Dtype())
     return data_frame
 
 
@@ -144,3 +147,64 @@ def trip_type_mapping_function(id: int) -> Union[str, NAType]:
         return 'Dispatch'
     else:
         return pd.NA
+
+
+@timer
+def add_trip_duration(data_frame: pd.DataFrame) -> pd.DataFrame:
+    data_frame['trip_duration_minutes'] = data_frame['dropoff_datetime'] - data_frame['pickup_datetime']
+    data_frame['trip_duration_minutes'] = data_frame['trip_duration_minutes'].dt.seconds / 60
+    data_frame['trip_duration_minutes'] = data_frame['trip_duration_minutes'].astype(np.float32)
+    return data_frame
+
+
+@timer
+def add_year(data_frame: pd.DataFrame) -> pd.DataFrame:
+    data_frame['year'] = pd.DatetimeIndex(data_frame['pickup_datetime']).year
+    data_frame['year'] = data_frame['year'].astype(np.int16)
+    return data_frame
+
+
+@timer
+def add_additional_date_features(data_frame: pd.DataFrame) -> pd.DataFrame:
+    """Add columns with values computed from pickup date.
+
+        Adds:
+        - year_quarter (eg. 2019Q1),
+        - year_month (eg. 2019-01),
+        - quarter (1-4),
+        - month (1-12),
+        - date (eg. 2019-01-01),
+        - day_of_week (1-7 where 1 is monday)
+        - hour_of_day.
+    """
+
+    dti = pd.DatetimeIndex(data_frame['pickup_datetime'])
+
+    data_frame['year_quarter'] = dti.year.astype(str) + 'Q' + dti.quarter.astype(str)
+    data_frame['year_month'] = dti.strftime('%Y-%m')
+    data_frame['quarter'] = dti.quarter.astype(np.int8)
+    data_frame['month'] = dti.month.astype(np.int8)
+    data_frame['date'] = dti.date
+    data_frame['day_of_week'] = (dti.weekday + 1).astype(np.int8)
+    data_frame['hour_of_day'] = dti.hour.astype(np.int8)
+
+    return data_frame
+
+
+@timer
+def standardize_trip_type_values(data_frame: pd.DataFrame) -> pd.DataFrame:
+    # if column doesn't exist add it with null values
+    if 'trip_type' not in data_frame.columns:
+        data_frame['trip_type'] = pd.NA
+    else:
+        data_frame['trip_type'] = data_frame['trip_type'].apply(trip_type_mapping_function)
+    return data_frame
+
+
+@timer
+def drop_invalid_passenger_count_values(data_frame: pd.DataFrame) -> pd.DataFrame:
+    """Remove rows where passenger count value is outside acceptable range [0,20]."""
+
+    data_frame = data_frame[(data_frame['passenger_count'] <= 20) & (data_frame['passenger_count'] >= 0)]
+    data_frame['passenger_count'] = data_frame['passenger_count'].astype(np.int8)
+    return data_frame

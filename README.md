@@ -19,7 +19,7 @@ Lookup data is from official NYC site: https://www1.nyc.gov/site/tlc/about/tlc-t
 Raw data downloaded using "wget" with -i and -P flags using list of files from aforementioned repo: https://github.com/toddwschneider/nyc-taxi-data/blob/master/setup_files/raw_data_urls.txt  
 
 ## Structure
-Folder _src_ contains Python scripts. Watch out as I was pretty aggresive with removing rows due to bad or missing data (eg. I seriously doubt that someone would ride a taxi for 4 hours to travel 0,5 mile and pay 5$ for that.)
+Folder _src_ contains Python scripts. Watch out as I was pretty aggressive with removing rows due to bad or missing data (eg. I seriously doubt that someone would ride a taxi for 4 hours to travel 0,5 mile and pay 5$ for that or that taxi could hold 208 passengers.)
 
 Description of files:
 - src/helper_objects.py - some helper functions as well as definitions of parameters for various files since the schema changed over time
@@ -80,14 +80,21 @@ tip_amount                      float32
 total_amount                    float32
 payment_type                     object
 trip_type                        object
-trip_duration_minutes           float32
-year                              int16
 pickup_borough                   object
 pickup_zone                      object
 pickup_location_id                int16
 dropoff_borough                  object
 dropoff_zone                     object
 dropoff_location_id               int16
+trip_duration_minutes           float32
+year                              int16
+year_quarter                     object
+year_month                       object
+quarter                           int64
+month                             int64
+date                             object
+day_of_week                       int64
+hour_of_day                       int64
 company                          object
 ```
 
@@ -112,4 +119,10 @@ pickup_location_id                int16
 dropoff_borough                  string
 dropoff_zone                     string
 dropoff_location_id               int16
+year_quarter                     string
+year_month                       string
+quarter                            int8
+month                              int8
+date                             date32
+day_of_week                        int8
 ```

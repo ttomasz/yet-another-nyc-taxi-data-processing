@@ -1,17 +1,16 @@
+import datetime
 import os
 from sys import stdout
 
 import pandas as pd
-import numpy as np
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 from data_cleaning import rename_columns, drop_invalid_coordinates, drop_invalid_timestamps, \
     drop_negative_values, standardize_snf_flag_values, standardize_payment_type_values, \
     replace_tip_values_for_cash_payments, drop_invalid_trip_durations, drop_invalid_year_values, \
-    drop_missing_location_ids, trip_type_mapping_function
+    drop_missing_location_ids, add_trip_duration, add_year, add_additional_date_features, \
+    standardize_trip_type_values, drop_invalid_passenger_count_values
 from helper_objects import yellow_taxi_params, ParameterType, green_taxi_params, lookup_csv_path, \
-    lookup_shp_path, arrow_schema, timer, print_sanity_stats
+    lookup_shp_path, timer, print_sanity_stats
 
 
 def _get_yellow_taxi_params(filename: str) -> ParameterType:
@@ -30,57 +29,31 @@ def process_taxi_data(df: pd.DataFrame, params: ParameterType, company: str) -> 
     """Applies cleaning rules and feature engineering on the provided DataFrame."""
 
     initial_number_of_rows = len(df.index)
+    start_time = time.perf_counter()
 
     df = rename_columns(df)
-    
-    if params['location'] == 'coordinates':
-        df = drop_invalid_coordinates(df)
-
+    df = join_location_data(df, params['location'])
     df = drop_invalid_timestamps(df)
     df = drop_negative_values(df)
+    df = drop_invalid_passenger_count_values(df)
     df = standardize_snf_flag_values(df)
     df = standardize_payment_type_values(df)
     df = replace_tip_values_for_cash_payments(df)
-
-    # add trip duration
-    df['trip_duration_minutes'] = (df['dropoff_datetime'] - df['pickup_datetime']).dt.seconds / 60
-    df['trip_duration_minutes'] = df['trip_duration_minutes'].astype(np.float32)
-
+    df = add_trip_duration(df)
     df = drop_invalid_trip_durations(df)
-
-    # add date related fields for easier querying
-    df['year'] = pd.DatetimeIndex(df['pickup_datetime']).year
-    df['year'] = df['year'].astype(np.int16)
-
+    df = add_year(df)
     df = drop_invalid_year_values(df)
-
-#     df['year_quarter'] = pd.DatetimeIndex(df['pickup_datetime']).year.astype(str) + 'Q' + pd.DatetimeIndex(df['pickup_datetime']).quarter.astype(str)
-#     df['year_month'] = pd.DatetimeIndex(df['pickup_datetime']).strftime('%Y-%m')
-#     df['quarter'] = df['year'] = pd.DatetimeIndex(df['pickup_datetime']).quarter
-#     df['month'] = df['year'] = pd.DatetimeIndex(df['pickup_datetime']).month
-#     df['date'] = df['year'] = pd.DatetimeIndex(df['pickup_datetime']).date
-#     df['day_of_week'] = pd.DatetimeIndex(df['pickup_datetime']).weekday + 1
-
-    if 'trip_type' not in df.columns:
-        df['trip_type'] = pd.NA
-    else:
-        df['trip_type'] = df['trip_type'].apply(trip_type_mapping_function)
-
-    df.reset_index(drop=True, inplace=True)
-    if params['location'] == 'id':
-        df = _join_location_data_by_id(df)
-    elif params['location'] == 'coordinates':
-        df = _join_location_data_by_coordinates(df)
-
-    df = drop_missing_location_ids(df)
-
-    df['pickup_location_id'] = df['pickup_location_id'].astype(np.int16)
-    df['dropoff_location_id'] = df['dropoff_location_id'].astype(np.int16)
+    df = add_additional_date_features(df)
+    df = standardize_trip_type_values(df)
     
     # assign company name
     df['company'] = company
 
     # info about processed DataFrame for sanity check
+    end_time = time.perf_counter()
+    run_time = datetime.timedelta(seconds=(end_time - start_time))
+    stdout.write(f'\t___\n\tProcessing DataFrame took {run_time}.\n')
+    stdout.flush()
     final_number_of_rows = len(df.index)
     print_sanity_stats(initial_number_of_rows, final_number_of_rows)
 
@@ -102,7 +75,7 @@ def process_taxi_data_file(filepath: str) -> pd.DataFrame:
 
 
 def _process_yellow_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
-    filename = os.path.basename(filepath)
+    filename = os.path.basename(filepath).split('.')[0]
     params = _get_yellow_taxi_params(filename)
     
     df = _read_csv(filepath, **params['csv_params'], **kwargs)
@@ -110,7 +83,7 @@ def _process_yellow_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
 
 
 def _process_green_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
-    filename = os.path.basename(filepath)
+    filename = os.path.basename(filepath).split('.')[0]
     params = _get_green_taxi_params(filename)
     
     df = _read_csv(filepath, **params['csv_params'], **kwargs)
@@ -120,6 +93,23 @@ def _process_green_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
 @timer
 def _read_csv(filepath: str, **kwargs) -> pd.DataFrame:
     return pd.read_csv(filepath, **kwargs)
+
+
+def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: bool = True) -> pd.DataFrame:
+    data_frame.reset_index(drop=True, inplace=True)
+    if join_by == 'id':
+        data_frame = _join_location_data_by_id(data_frame)
+    elif join_by == 'coordinates':
+        data_frame = drop_invalid_coordinates(data_frame)
+        data_frame = _join_location_data_by_coordinates(data_frame)
+    if drop_missing:
+        data_frame = drop_missing_location_ids(data_frame)
+        new_type = 'int16'
+    else:
+        new_type = 'Int16'
+    data_frame['pickup_location_id'] = data_frame['pickup_location_id'].astype(new_type)
+    data_frame['dropoff_location_id'] = data_frame['dropoff_location_id'].astype(new_type)
+    return data_frame
 
 
 @timer
@@ -167,11 +157,11 @@ def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame
     temp_pickup_gdf = gpd.sjoin(
         left_df=temp_pickup_gdf,
         right_df=gdf,
-        how='left', op='within')[['borough', 'zone', 'LocationID']]
+        how='left')[['borough', 'zone', 'LocationID']]
     temp_dropoff_gdf = gpd.sjoin(
         left_df=temp_dropoff_gdf,
         right_df=gdf,
-        how='left', op='within')[['borough', 'zone', 'LocationID']]
+        how='left')[['borough', 'zone', 'LocationID']]
     data_frame = data_frame.merge(
         temp_pickup_gdf.rename(columns=pickup_column_names),
         how='left',
@@ -181,3 +171,18 @@ def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame
         how='left',
         left_index=True, right_index=True)
     return data_frame.drop(columns=[name for name in data_frame.columns if 'longitude' in name or 'latitude' in name])
+
+
+if __name__ == '__main__':
+    # for testing
+    import time
+    sts = time.perf_counter()
+    _df = process_taxi_data_file('F:/green_tripdata_2013-08.csv.zip')
+    ets = time.perf_counter()
+    print('processing took:', ets-sts)
+    print(_df.head())
+    for col in _df.columns:
+        print(_df[col].head())
+    print('##################')
+    print(_df.dtypes)
+

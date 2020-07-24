@@ -1,3 +1,4 @@
+import datetime
 import os
 import time
 from glob import glob
@@ -76,12 +77,19 @@ arrow_schema = pa.schema([
     ('dropoff_borough', pa.string()),
     ('dropoff_zone', pa.string()),
     ('dropoff_location_id', pa.int16()),
+    ('year_quarter', pa.string()),
+    ('year_month', pa.string()),
+    ('quarter', pa.int8()),
+    ('month', pa.int8()),
+    ('date', pa.date32()),
+    ('day_of_week', pa.int8()),
+    ('hour_of_day', pa.int8()),
 ])
 
 ParameterType = Dict[str, Union[str, Dict[str, Union[bool, Dict[str, str], List[str]]]]]
 ParametersDictType = Dict[str, ParameterType]
 yellow_taxi_params: ParametersDictType = {
-    'yellow_tripdata_2009-12.csv': {
+    'yellow_tripdata_2009-12': {
         'csv_params': {
             'parse_dates': ['Trip_Pickup_DateTime', 'Trip_Dropoff_DateTime'],
             'infer_datetime_format': True,
@@ -112,7 +120,7 @@ yellow_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'yellow_tripdata_2014-12.csv': {
+    'yellow_tripdata_2014-12': {
         'csv_params': {
             'parse_dates': ['pickup_datetime', 'dropoff_datetime'],
             'infer_datetime_format': True,
@@ -143,7 +151,7 @@ yellow_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'yellow_tripdata_2016-06.csv': {
+    'yellow_tripdata_2016-06': {
         'csv_params': {
             'parse_dates': ['tpep_pickup_datetime', 'tpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -174,7 +182,7 @@ yellow_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'yellow_tripdata_2016-12.csv': {
+    'yellow_tripdata_2016-12': {
         'csv_params': {
             'parse_dates': ['tpep_pickup_datetime', 'tpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -206,7 +214,7 @@ yellow_taxi_params: ParametersDictType = {
         },
         'location': 'id'
     },
-    'yellow_tripdata_2018-12.csv': {
+    'yellow_tripdata_2018-12': {
         'csv_params': {
             'parse_dates': ['tpep_pickup_datetime', 'tpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -235,7 +243,7 @@ yellow_taxi_params: ParametersDictType = {
         },
         'location': 'id'
     },
-    'yellow_tripdata_2019-12.csv': {
+    'yellow_tripdata_2019-12': {
         'csv_params': {
             'parse_dates': ['tpep_pickup_datetime', 'tpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -296,7 +304,7 @@ yellow_taxi_params: ParametersDictType = {
 }
 
 green_taxi_params: ParametersDictType = {
-    'green_tripdata_2014-12.csv': {
+    'green_tripdata_2014-12': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'Lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -331,7 +339,7 @@ green_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'green_tripdata_2015-06.csv': {
+    'green_tripdata_2015-06': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'Lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -366,7 +374,7 @@ green_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'green_tripdata_2016-06.csv': {
+    'green_tripdata_2016-06': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'Lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -398,7 +406,7 @@ green_taxi_params: ParametersDictType = {
         },
         'location': 'coordinates'
     },
-    'green_tripdata_2016-12.csv': {
+    'green_tripdata_2016-12': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -431,7 +439,7 @@ green_taxi_params: ParametersDictType = {
         },
         'location': 'id'
     },
-    'green_tripdata_2018-12.csv': {
+    'green_tripdata_2018-12': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -461,7 +469,7 @@ green_taxi_params: ParametersDictType = {
         },
         'location': 'id'
     },
-    'green_tripdata_2019-12.csv': {
+    'green_tripdata_2019-12': {
         'csv_params': {
             'parse_dates': ['lpep_pickup_datetime', 'lpep_dropoff_datetime'],
             'infer_datetime_format': True,
@@ -551,10 +559,12 @@ def timer(func):
     """Print the runtime of the decorated function"""
     @functools.wraps(func)
     def wrapper_timer(*args, **kwargs):
+        stdout.write(f'\tRunning {func.__name__!r}')
         start_time = time.perf_counter()
         value = func(*args, **kwargs)
         end_time = time.perf_counter()
-        run_time = end_time - start_time
-        stdout.write(f'\tFinished {func.__name__!r} in {run_time:.4f} secs\n')
+        run_time = datetime.timedelta(seconds=(end_time - start_time))
+        stdout.write(f'. It took {run_time}.\n')
+        stdout.flush()
         return value
     return wrapper_timer
