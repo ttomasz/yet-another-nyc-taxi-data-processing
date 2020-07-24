@@ -26,6 +26,7 @@ def csv2parquet(paths: List[str], output_folder: str) -> None:
         df = process_taxi_data_file(path)
         write_to_parquet(df, result_file_path)
         stdout.write(f"{str(i + 1).zfill(2)}/{str(of).zfill(2)} - {datetime.now().isoformat(timespec='seconds')} - done.\n")
+        stdout.write(f'___\n')
         stdout.flush()
 
     stdout.write(f"{datetime.now().isoformat(timespec='seconds')} - finished processing files.\n")
@@ -54,7 +55,5 @@ def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
 
 if __name__ == '__main__':
     # for testing
-    # csv2parquet_green_taxi('F:/', 'F:/parquet')
-    # csv2parquet_yellow_taxi('F:/', 'F:/parquet')
-
-    csv2parquet(['F:/green_tripdata_2013-08.csv.zip'], 'F:/parquet')
+    csv2parquet_green_taxi('F:/', 'F:/parquet')
+    csv2parquet_yellow_taxi('F:/', 'F:/parquet')

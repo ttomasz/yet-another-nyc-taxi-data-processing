@@ -68,7 +68,7 @@ def process_taxi_data(df: pd.DataFrame, params: ParameterType, company: str) -> 
 
 
 @timer(logging.INFO)
-def process_taxi_data_file(filepath: str, **kwargs) -> pd.DataFrame:
+def process_taxi_data_file(filepath: str, chunksize=500000, **kwargs) -> pd.DataFrame:
     """Reads file and applies cleaning rules and feature engineering."""
 
     initial_number_of_rows = 0
@@ -77,7 +77,7 @@ def process_taxi_data_file(filepath: str, **kwargs) -> pd.DataFrame:
     company_name, params = get_taxi_params(filename)
 
     data_frames = []
-    for idx, chunk in enumerate(_csv_chunks(filepath, **params['csv_params'], **kwargs)):
+    for idx, chunk in enumerate(_csv_chunks(filepath, chunksize, **params['csv_params'], **kwargs)):
         stdout.write(f'File: {filename!r} - processing chunk: {idx+1}\n')
         initial_number_of_rows += len(chunk.index)
         data_frames.append(process_taxi_data(chunk, params=params, company=company_name))
@@ -101,8 +101,8 @@ def _read_csv(filepath: str, **kwargs) -> pd.DataFrame:
     return pd.read_csv(filepath, **kwargs)
 
 
-def _csv_chunks(filepath: str, **kwargs) -> Iterable[pd.DataFrame]:
-    return pd.read_csv(filepath, chunksize=500000, **kwargs)
+def _csv_chunks(filepath: str, chunksize=500000, **kwargs) -> Iterable[pd.DataFrame]:
+    return pd.read_csv(filepath, chunksize=chunksize, **kwargs)
 
 
 def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: bool = True) -> pd.DataFrame:
@@ -167,11 +167,11 @@ def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame
     temp_pickup_gdf = gpd.sjoin(
         left_df=temp_pickup_gdf,
         right_df=gdf,
-        how='left')[['borough', 'zone', 'LocationID']]
+        how='left', op='within')[['borough', 'zone', 'LocationID']]
     temp_dropoff_gdf = gpd.sjoin(
         left_df=temp_dropoff_gdf,
         right_df=gdf,
-        how='left')[['borough', 'zone', 'LocationID']]
+        how='left', op='within')[['borough', 'zone', 'LocationID']]
     data_frame = data_frame.merge(
         temp_pickup_gdf.rename(columns=pickup_column_names),
         how='left',

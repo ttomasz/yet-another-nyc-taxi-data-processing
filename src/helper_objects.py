@@ -556,6 +556,8 @@ def print_sanity_stats(initial_number_of_rows: int, final_number_of_rows: int) -
         stderr.write(f'WARNING!\n')
         stderr.write(f'Percentage of dropped rows above {warning_threshold}% threshold!\n')
         stderr.write(f'##############\n')
+    stdout.flush()
+    stderr.flush()
 
 
 def timer(log_level=logging.INFO):
@@ -572,13 +574,3 @@ def timer(log_level=logging.INFO):
             return value
         return wrapper_timer
     return _timer
-
-
-@timer(logging.INFO)
-def test(a, b, c):
-    print(a, b, c)
-
-
-if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.DEBUG)
-    test(1, 2, 3)
