@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Union, Any
 
 import numpy as np
@@ -8,14 +9,14 @@ from pandas._libs.missing import NAType
 from helper_objects import column_name_mapping_dict, timer
 
 
-@timer
+@timer(logging.DEBUG)
 def rename_columns(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Standardize column names."""
 
     return data_frame.rename(columns=column_mapping_function)
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows where any of the coordinates is 0 or null."""
 
@@ -26,7 +27,7 @@ def drop_invalid_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_timestamps(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove taxi rides ignoring laws of physics (going back in time).
     Drop where pickup is the same time or later than dropoff or either of the timestamps is null."""
@@ -36,7 +37,7 @@ def drop_invalid_timestamps(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_negative_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows with trip distance, total fare or passenger count below zero."""
 
@@ -46,13 +47,13 @@ def drop_negative_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_distances(data_frame: pd.DataFrame) -> pd.DataFrame:
     # we could compare reported distance with pickup and dropoff locations but that's kinda too much work
     raise NotImplementedError()
 
 
-@timer
+@timer(logging.DEBUG)
 def replace_tip_values_for_cash_payments(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Change tip amount to null for cash transactions (better to have nulls for unknown values than zeroes)."""
 
@@ -60,7 +61,7 @@ def replace_tip_values_for_cash_payments(data_frame: pd.DataFrame) -> pd.DataFra
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_trip_durations(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows where we couldn't calculate trip duration or it was over 90 minutes."""
 
@@ -69,7 +70,7 @@ def drop_invalid_trip_durations(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_year_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove records with dates that were wrong or parsed improperly."""
 
@@ -78,14 +79,14 @@ def drop_invalid_year_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_missing_location_ids(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows that don't have either pickup or dropoff location id."""
 
     return data_frame.dropna(subset=['pickup_location_id', 'dropoff_location_id'])
 
 
-@timer
+@timer(logging.DEBUG)
 def standardize_snf_flag_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Replace values of store_and_forward with standardized versions."""
 
@@ -94,7 +95,7 @@ def standardize_snf_flag_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def standardize_payment_type_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Replace values of payment_type with standardized versions."""
 
@@ -149,7 +150,7 @@ def trip_type_mapping_function(id: int) -> Union[str, NAType]:
         return pd.NA
 
 
-@timer
+@timer(logging.DEBUG)
 def add_trip_duration(data_frame: pd.DataFrame) -> pd.DataFrame:
     data_frame['trip_duration_minutes'] = data_frame['dropoff_datetime'] - data_frame['pickup_datetime']
     data_frame['trip_duration_minutes'] = data_frame['trip_duration_minutes'].dt.seconds / 60
@@ -157,14 +158,14 @@ def add_trip_duration(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def add_year(data_frame: pd.DataFrame) -> pd.DataFrame:
     data_frame['year'] = pd.DatetimeIndex(data_frame['pickup_datetime']).year
     data_frame['year'] = data_frame['year'].astype(np.int16)
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def add_additional_date_features(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Add columns with values computed from pickup date.
 
@@ -191,7 +192,7 @@ def add_additional_date_features(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def standardize_trip_type_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     # if column doesn't exist add it with null values
     if 'trip_type' not in data_frame.columns:
@@ -201,7 +202,7 @@ def standardize_trip_type_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def drop_invalid_passenger_count_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows where passenger count value is outside acceptable range [0,20]."""
 

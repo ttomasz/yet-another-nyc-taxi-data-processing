@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 from sys import stdout
@@ -38,7 +39,7 @@ def csv2parquet_yellow_taxi(taxi_data_basepath: str, output_folder: str) -> None
     csv2parquet(yellow_taxi_paths(taxi_data_basepath), output_folder)
 
 
-@timer
+@timer(logging.INFO)
 def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
     # prepare arrow table
     #   sorting for better compression
@@ -53,5 +54,7 @@ def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
 
 if __name__ == '__main__':
     # for testing
-    csv2parquet_green_taxi('F:/', 'F:/parquet')
-    csv2parquet_yellow_taxi('F:/', 'F:/parquet')
+    # csv2parquet_green_taxi('F:/', 'F:/parquet')
+    # csv2parquet_yellow_taxi('F:/', 'F:/parquet')
+
+    csv2parquet(['F:/green_tripdata_2013-08.csv.zip'], 'F:/parquet')

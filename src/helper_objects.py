@@ -5,8 +5,11 @@ from glob import glob
 from sys import stdout, stderr
 from typing import Dict, Union, List
 import functools
+import logging
 
 import pyarrow as pa
+
+logging.basicConfig(format='%(asctime)s - PROC%(process)d - %(levelname)s - %(message)s')
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 lookup_csv_path = os.path.join(this_file_dir, '../lookup/taxi+_zone_lookup.csv')
@@ -555,16 +558,27 @@ def print_sanity_stats(initial_number_of_rows: int, final_number_of_rows: int) -
         stderr.write(f'##############\n')
 
 
-def timer(func):
-    """Print the runtime of the decorated function"""
-    @functools.wraps(func)
-    def wrapper_timer(*args, **kwargs):
-        stdout.write(f'\tRunning {func.__name__!r}')
-        start_time = time.perf_counter()
-        value = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        run_time = datetime.timedelta(seconds=(end_time - start_time))
-        stdout.write(f'. It took {run_time}.\n')
-        stdout.flush()
-        return value
-    return wrapper_timer
+def timer(log_level=logging.INFO):
+    def _timer(func):
+        """Print the runtime of the decorated function"""
+        @functools.wraps(func)
+        def wrapper_timer(*args, **kwargs):
+            logging.log(log_level, f'Running {func.__name__!r}...')
+            start_time = time.perf_counter()
+            value = func(*args, **kwargs)
+            end_time = time.perf_counter()
+            run_time = datetime.timedelta(seconds=(end_time - start_time))
+            logging.log(log_level, f'Running {func.__name__!r} took {run_time}.')
+            return value
+        return wrapper_timer
+    return _timer
+
+
+@timer(logging.INFO)
+def test(a, b, c):
+    print(a, b, c)
+
+
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG)
+    test(1, 2, 3)

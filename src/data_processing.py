@@ -1,6 +1,9 @@
 import datetime
+import logging
+import time
 import os
 from sys import stdout
+from typing import Iterable, Tuple
 
 import pandas as pd
 
@@ -25,11 +28,23 @@ def _get_green_taxi_params(filename: str) -> ParameterType:
             return green_taxi_params[k]
 
 
+def get_taxi_params(filename: str) -> Tuple[str, ParameterType]:
+    """Returns tuple with company name (yellow, green) and parameters needed for parsing CSV file."""
+
+    if 'yellow' in filename:
+        company_name = 'yellow'
+        params = _get_yellow_taxi_params(filename)
+    elif 'green' in filename:
+        company_name = 'green'
+        params = _get_green_taxi_params(filename)
+    else:
+        raise ValueError(f'Couldn\'t determine how to parse given filename: {filename}')
+
+    return company_name, params
+
+
 def process_taxi_data(df: pd.DataFrame, params: ParameterType, company: str) -> pd.DataFrame:
     """Applies cleaning rules and feature engineering on the provided DataFrame."""
-
-    initial_number_of_rows = len(df.index)
-    start_time = time.perf_counter()
 
     df = rename_columns(df)
     df = join_location_data(df, params['location'])
@@ -49,50 +64,45 @@ def process_taxi_data(df: pd.DataFrame, params: ParameterType, company: str) -> 
     # assign company name
     df['company'] = company
 
-    # info about processed DataFrame for sanity check
+    return df
+
+
+@timer(logging.INFO)
+def process_taxi_data_file(filepath: str, **kwargs) -> pd.DataFrame:
+    """Reads file and applies cleaning rules and feature engineering."""
+
+    initial_number_of_rows = 0
+    start_time = time.perf_counter()
+    filename = os.path.basename(filepath).split('.')[0]
+    company_name, params = get_taxi_params(filename)
+
+    data_frames = []
+    for idx, chunk in enumerate(_csv_chunks(filepath, **params['csv_params'], **kwargs)):
+        stdout.write(f'File: {filename!r} - processing chunk: {idx+1}\n')
+        initial_number_of_rows += len(chunk.index)
+        data_frames.append(process_taxi_data(chunk, params=params, company=company_name))
+
+    df = pd.concat(data_frames, ignore_index=True)
+
     end_time = time.perf_counter()
     run_time = datetime.timedelta(seconds=(end_time - start_time))
-    stdout.write(f'\t___\n\tProcessing DataFrame took {run_time}.\n')
+    stdout.write(f'___\nProcessing file {filename!r} took {run_time}.\n')
     stdout.flush()
+
+    # info about processed DataFrame for sanity check
     final_number_of_rows = len(df.index)
     print_sanity_stats(initial_number_of_rows, final_number_of_rows)
 
     return df
 
 
-def process_taxi_data_file(filepath: str) -> pd.DataFrame:
-    """Reads file and applies cleaning rules and feature engineering."""
-
-    filename = os.path.basename(filepath)
-
-    if 'yellow' in filename:
-        df = _process_yellow_taxi_data(filepath)
-    elif 'green' in filename:
-        df = _process_green_taxi_data(filepath)
-    else:
-        raise ValueError(f'Couldn\'t determine how to parse given path: {filepath}')
-    return df
-
-
-def _process_yellow_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
-    filename = os.path.basename(filepath).split('.')[0]
-    params = _get_yellow_taxi_params(filename)
-    
-    df = _read_csv(filepath, **params['csv_params'], **kwargs)
-    return process_taxi_data(df, params=params, company='yellow')
-
-
-def _process_green_taxi_data(filepath: str, **kwargs) -> pd.DataFrame:
-    filename = os.path.basename(filepath).split('.')[0]
-    params = _get_green_taxi_params(filename)
-    
-    df = _read_csv(filepath, **params['csv_params'], **kwargs)
-    return process_taxi_data(df, params=params, company='green')
-
-
-@timer
+@timer(logging.DEBUG)
 def _read_csv(filepath: str, **kwargs) -> pd.DataFrame:
     return pd.read_csv(filepath, **kwargs)
+
+
+def _csv_chunks(filepath: str, **kwargs) -> Iterable[pd.DataFrame]:
+    return pd.read_csv(filepath, chunksize=500000, **kwargs)
 
 
 def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: bool = True) -> pd.DataFrame:
@@ -112,7 +122,7 @@ def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: boo
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def _join_location_data_by_id(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Merge information about location to DataFrame using locations' ids."""
     
@@ -132,7 +142,7 @@ def _join_location_data_by_id(data_frame: pd.DataFrame) -> pd.DataFrame:
     return data_frame
 
 
-@timer
+@timer(logging.DEBUG)
 def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Merge information about location to DataFrame using coordinates."""
     
@@ -174,15 +184,12 @@ def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame
 
 
 if __name__ == '__main__':
-    # for testing
-    import time
-    sts = time.perf_counter()
-    _df = process_taxi_data_file('F:/green_tripdata_2013-08.csv.zip')
-    ets = time.perf_counter()
-    print('processing took:', ets-sts)
-    print(_df.head())
-    for col in _df.columns:
-        print(_df[col].head())
-    print('##################')
-    print(_df.dtypes)
+    # logging.getLogger().setLevel(logging.INFO)
 
+    # for testing
+    _df = process_taxi_data_file('F:/green_tripdata_2013-12.csv.zip')
+    # print(_df.head())
+    # for col in _df.columns:
+    #     print(_df[col].head())
+    # print('##################')
+    # print(_df.dtypes)
