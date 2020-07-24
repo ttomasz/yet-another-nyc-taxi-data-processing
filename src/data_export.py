@@ -43,10 +43,9 @@ def csv2parquet_yellow_taxi(taxi_data_basepath: str, output_folder: str) -> None
 @timer(logging.INFO)
 def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
     # prepare arrow table
-    #   sorting for better compression
     #   replacing NA with NaN due to current incompatibility of pyarrow with that type
     table = pa.Table.from_pandas(
-        df=data_frame.fillna(np.nan).sort_values(by=['pickup_location_id', 'dropoff_location_id', 'payment_type']),
+        df=data_frame.fillna(np.nan),
         schema=arrow_schema,
         preserve_index=False)
     # write table to parquet file
@@ -55,5 +54,5 @@ def write_to_parquet(data_frame: pd.DataFrame, filepath: str) -> None:
 
 if __name__ == '__main__':
     # for testing
-    csv2parquet_green_taxi('F:/', 'F:/parquet')
-    csv2parquet_yellow_taxi('F:/', 'F:/parquet')
+    csv2parquet_green_taxi('F:\\', 'F:\\parquet')
+    csv2parquet_yellow_taxi('F:\\', 'F:\\parquet')

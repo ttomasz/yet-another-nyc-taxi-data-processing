@@ -1,4 +1,3 @@
-import datetime
 import logging
 from typing import Union, Any
 
@@ -204,8 +203,18 @@ def standardize_trip_type_values(data_frame: pd.DataFrame) -> pd.DataFrame:
 
 @timer(logging.DEBUG)
 def drop_invalid_passenger_count_values(data_frame: pd.DataFrame) -> pd.DataFrame:
-    """Remove rows where passenger count value is outside acceptable range [0,20]."""
+    """Remove rows where passenger count value is outside acceptable range [0,20] - nulls are ok."""
 
-    data_frame = data_frame[(data_frame['passenger_count'] <= 20) & (data_frame['passenger_count'] >= 0)]
-    data_frame['passenger_count'] = data_frame['passenger_count'].astype(np.int8)
+    data_frame = data_frame[
+        (data_frame['passenger_count'].fillna(0) >= 0) & (data_frame['passenger_count'].fillna(0) <= 20)
+    ]
+    data_frame['passenger_count'] = data_frame['passenger_count'].astype('Int8')
     return data_frame
+
+
+@timer(logging.DEBUG)
+def sort_df(data_frame: pd.DataFrame) -> pd.DataFrame:
+    """Sort DataFrame by fields that will help with compression in columnar format such as Parquet."""
+
+    return data_frame.sort_values(by=['pickup_location_id', 'dropoff_location_id', 'payment_type'])
+

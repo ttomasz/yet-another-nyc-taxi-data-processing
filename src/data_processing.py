@@ -11,7 +11,7 @@ from data_cleaning import rename_columns, drop_invalid_coordinates, drop_invalid
     drop_negative_values, standardize_snf_flag_values, standardize_payment_type_values, \
     replace_tip_values_for_cash_payments, drop_invalid_trip_durations, drop_invalid_year_values, \
     drop_missing_location_ids, add_trip_duration, add_year, add_additional_date_features, \
-    standardize_trip_type_values, drop_invalid_passenger_count_values
+    standardize_trip_type_values, drop_invalid_passenger_count_values, sort_df
 from helper_objects import yellow_taxi_params, ParameterType, green_taxi_params, lookup_csv_path, \
     lookup_shp_path, timer, print_sanity_stats
 
@@ -60,15 +60,18 @@ def process_taxi_data(df: pd.DataFrame, params: ParameterType, company: str) -> 
     df = drop_invalid_year_values(df)
     df = add_additional_date_features(df)
     df = standardize_trip_type_values(df)
-    
+
     # assign company name
     df['company'] = company
+
+    # sorting so later on when we save to parquet we get better compression
+    df = sort_df(df)
 
     return df
 
 
 @timer(logging.INFO)
-def process_taxi_data_file(filepath: str, chunksize=500000, **kwargs) -> pd.DataFrame:
+def process_taxi_data_file(filepath: str, chunksize: int = 1000000, **kwargs) -> pd.DataFrame:
     """Reads file and applies cleaning rules and feature engineering."""
 
     initial_number_of_rows = 0
@@ -78,7 +81,7 @@ def process_taxi_data_file(filepath: str, chunksize=500000, **kwargs) -> pd.Data
 
     data_frames = []
     for idx, chunk in enumerate(_csv_chunks(filepath, chunksize, **params['csv_params'], **kwargs)):
-        stdout.write(f'File: {filename!r} - processing chunk: {idx+1}\n')
+        stdout.write(f'File: {filename!r} - processing chunk: {idx + 1}\n')
         initial_number_of_rows += len(chunk.index)
         data_frames.append(process_taxi_data(chunk, params=params, company=company_name))
 
@@ -101,12 +104,12 @@ def _read_csv(filepath: str, **kwargs) -> pd.DataFrame:
     return pd.read_csv(filepath, **kwargs)
 
 
-def _csv_chunks(filepath: str, chunksize=500000, **kwargs) -> Iterable[pd.DataFrame]:
+def _csv_chunks(filepath: str, chunksize: int = 1000000, **kwargs) -> Iterable[pd.DataFrame]:
     return pd.read_csv(filepath, chunksize=chunksize, **kwargs)
 
 
 def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: bool = True) -> pd.DataFrame:
-    data_frame.reset_index(drop=True, inplace=True)
+    data_frame = data_frame.reset_index(drop=True)
     if join_by == 'id':
         data_frame = _join_location_data_by_id(data_frame)
     elif join_by == 'coordinates':
@@ -125,7 +128,7 @@ def join_location_data(data_frame: pd.DataFrame, join_by: str, drop_missing: boo
 @timer(logging.DEBUG)
 def _join_location_data_by_id(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Merge information about location to DataFrame using locations' ids."""
-    
+
     ldf = pd.read_csv(lookup_csv_path, index_col='LocationID',
                       usecols=['LocationID', 'Borough', 'Zone'])
     pickup_column_names = {'Borough': 'pickup_borough', 'Zone': 'pickup_zone', 'LocationID': 'pickup_location_id'}
@@ -145,7 +148,7 @@ def _join_location_data_by_id(data_frame: pd.DataFrame) -> pd.DataFrame:
 @timer(logging.DEBUG)
 def _join_location_data_by_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Merge information about location to DataFrame using coordinates."""
-    
+
     import geopandas as gpd
 
     gdf = gpd.read_file(lookup_shp_path)
@@ -187,7 +190,7 @@ if __name__ == '__main__':
     # logging.getLogger().setLevel(logging.INFO)
 
     # for testing
-    _df = process_taxi_data_file('F:/green_tripdata_2013-12.csv.zip')
+    _df = process_taxi_data_file('F:\\green_tripdata_2013-12.csv.zip')
     # print(_df.head())
     # for col in _df.columns:
     #     print(_df[col].head())
