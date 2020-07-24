@@ -114,8 +114,8 @@ def store_and_fwd_flag_mapping_function(x: Any) -> Union[int, NAType]:
         return pd.NA
 
 
-def payment_type_mapping_function(id: Any) -> Union[str, NAType]:
-    x = str(id).lower()
+def payment_type_mapping_function(type_id: Any) -> Union[str, NAType]:
+    x = str(type_id).lower()
     if x in {'cre', 'crd', '1', 'credit'}:
         return 'credit card'
     elif x in {'cas', 'csh', '2', 'cash'}:
@@ -141,10 +141,10 @@ def column_mapping_function(col: str) -> str:
     return column_name_mapping_dict.get(col, col)
 
 
-def trip_type_mapping_function(id: int) -> Union[str, NAType]:
-    if id == 1:
+def trip_type_mapping_function(type_id: int) -> Union[str, NAType]:
+    if type_id == 1:
         return 'Street-hail'
-    elif id == 2:
+    elif type_id == 2:
         return 'Dispatch'
     else:
         return pd.NA
