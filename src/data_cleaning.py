@@ -23,7 +23,7 @@ def drop_invalid_coordinates(data_frame: pd.DataFrame) -> pd.DataFrame:
         subset=['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude'])
     data_frame = data_frame[(data_frame['pickup_longitude'] != 0) & (data_frame['pickup_latitude'] != 0) &
                             (data_frame['dropoff_longitude'] != 0) & (data_frame['dropoff_latitude'] != 0)]
-    return data_frame
+    return data_frame.copy()
 
 
 @timer(logging.DEBUG)
@@ -33,7 +33,7 @@ def drop_invalid_timestamps(data_frame: pd.DataFrame) -> pd.DataFrame:
 
     data_frame = data_frame.dropna(subset=['pickup_datetime', 'pickup_datetime'])
     data_frame = data_frame[data_frame['pickup_datetime'] < data_frame['dropoff_datetime']]
-    return data_frame
+    return data_frame.copy()
 
 
 @timer(logging.DEBUG)
@@ -43,7 +43,7 @@ def drop_negative_values(data_frame: pd.DataFrame) -> pd.DataFrame:
     data_frame = data_frame[data_frame['trip_distance'].fillna(0) >= 0]
     data_frame = data_frame[data_frame['total_amount'].fillna(0) >= 0]
     data_frame = data_frame[data_frame['passenger_count'].fillna(0) >= 0]
-    return data_frame
+    return data_frame.copy()
 
 
 @timer(logging.DEBUG)
@@ -56,7 +56,7 @@ def drop_invalid_distances(data_frame: pd.DataFrame) -> pd.DataFrame:
 def replace_tip_values_for_cash_payments(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Change tip amount to null for cash transactions (better to have nulls for unknown values than zeroes)."""
 
-    data_frame['tip_amount'].mask(data_frame['payment_type'] == 'cash', np.nan)
+    data_frame['tip_amount'] = data_frame['tip_amount'].mask(data_frame['payment_type'] == 'cash', np.nan)
     return data_frame
 
 
@@ -66,7 +66,7 @@ def drop_invalid_trip_durations(data_frame: pd.DataFrame) -> pd.DataFrame:
 
     data_frame = data_frame.dropna(subset=['trip_duration_minutes'])
     data_frame = data_frame[data_frame['trip_duration_minutes'] <= 90]
-    return data_frame
+    return data_frame.copy()
 
 
 @timer(logging.DEBUG)
@@ -75,14 +75,14 @@ def drop_invalid_year_values(data_frame: pd.DataFrame) -> pd.DataFrame:
 
     data_frame = data_frame.dropna(subset=['year'])
     data_frame = data_frame[(data_frame['year'] >= 2009) & (data_frame['year'] < 2029)]
-    return data_frame
+    return data_frame.copy()
 
 
 @timer(logging.DEBUG)
 def drop_missing_location_ids(data_frame: pd.DataFrame) -> pd.DataFrame:
     """Remove rows that don't have either pickup or dropoff location id."""
 
-    return data_frame.dropna(subset=['pickup_location_id', 'dropoff_location_id'])
+    return data_frame.dropna(subset=['pickup_location_id', 'dropoff_location_id']).copy()
 
 
 @timer(logging.DEBUG)
@@ -207,7 +207,7 @@ def drop_invalid_passenger_count_values(data_frame: pd.DataFrame) -> pd.DataFram
 
     data_frame = data_frame[
         (data_frame['passenger_count'].fillna(0) >= 0) & (data_frame['passenger_count'].fillna(0) <= 20)
-    ]
+    ].copy()
     data_frame['passenger_count'] = data_frame['passenger_count'].astype('Int8')
     return data_frame
 
